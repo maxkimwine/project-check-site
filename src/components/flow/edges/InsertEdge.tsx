@@ -24,6 +24,7 @@ export function InsertEdge({
     targetY,
     sourcePosition,
     targetPosition,
+    borderRadius: 16,
   });
   const { onInsert } = (data ?? {}) as Partial<InsertEdgeData>;
 
@@ -32,7 +33,7 @@ export function InsertEdge({
       <BaseEdge
         id={id}
         path={edgePath}
-        style={{ stroke: selected ? '#2dd4bf' : '#52525b', strokeWidth: 2 }}
+        style={{ stroke: selected ? '#facc15' : '#52525b', strokeWidth: selected ? 3 : 2 }}
       />
       <EdgeLabelRenderer>
         <button

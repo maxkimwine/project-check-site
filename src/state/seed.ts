@@ -1,5 +1,6 @@
 import type { FlowEdge, FlowNode, Project } from '../types/project';
 import { createId } from '../utils/id';
+import { layout } from '../utils/graph';
 
 export interface SeededProject {
   project: Project;
@@ -41,9 +42,15 @@ export function seedProject(name: string): SeededProject {
     { id: createId(), projectId, source: middleNode.id, target: endNode.id },
   ];
 
+  const nodes = [startNode, middleNode, endNode];
+  const positions = layout(nodes, edges);
+  for (const node of nodes) {
+    node.position = positions[node.id] ?? node.position;
+  }
+
   return {
     project: { id: projectId, name, createdAt: now },
-    nodes: [startNode, middleNode, endNode],
+    nodes,
     edges,
   };
 }
