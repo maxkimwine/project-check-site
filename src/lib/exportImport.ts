@@ -10,6 +10,7 @@ export interface ProjectExport {
     title: string;
     position: { x: number; y: number };
     completed?: boolean;
+    completedAt?: string | null;
   }[];
   edges: { id: string; source: string; target: string; branchSide?: 'left' | 'right' }[];
   memos: {
@@ -19,6 +20,7 @@ export interface ProjectExport {
     author?: string;
     createdAt: string;
     resolved: boolean;
+    resolvedAt?: string | null;
   }[];
   replies: { id: string; memoId: string; text: string; author?: string; createdAt: string }[];
 }
@@ -34,21 +36,23 @@ export function buildProjectExport(
     version: 1,
     exportedAt: new Date().toISOString(),
     project: { name: project.name },
-    nodes: nodes.map(({ id, kind, title, position, completed }) => ({
+    nodes: nodes.map(({ id, kind, title, position, completed, completedAt }) => ({
       id,
       kind,
       title,
       position,
       completed,
+      completedAt,
     })),
     edges: edges.map(({ id, source, target, branchSide }) => ({ id, source, target, branchSide })),
-    memos: memos.map(({ id, nodeId, text, author, createdAt, resolved }) => ({
+    memos: memos.map(({ id, nodeId, text, author, createdAt, resolved, resolvedAt }) => ({
       id,
       nodeId,
       text,
       author,
       createdAt,
       resolved,
+      resolvedAt,
     })),
     replies: replies.map(({ id, memoId, text, author, createdAt }) => ({
       id,

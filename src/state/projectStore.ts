@@ -75,6 +75,7 @@ export const useProjectStore = create<ProjectState>()(
             position: n.position,
             createdAt: now,
             completed: n.completed ?? false,
+            completedAt: n.completedAt ?? null,
           };
         });
 
@@ -99,6 +100,7 @@ export const useProjectStore = create<ProjectState>()(
               author: m.author,
               createdAt: m.createdAt,
               resolved: m.resolved,
+              resolvedAt: m.resolvedAt ?? null,
             },
           ];
         });
@@ -149,9 +151,11 @@ export const useProjectStore = create<ProjectState>()(
       toggleNodeCompleted: (nodeId) => {
         set((state) => ({
           ...state,
-          nodes: state.nodes.map((n) =>
-            n.id === nodeId ? { ...n, completed: !n.completed } : n,
-          ),
+          nodes: state.nodes.map((n) => {
+            if (n.id !== nodeId) return n;
+            const completed = !n.completed;
+            return { ...n, completed, completedAt: completed ? new Date().toISOString() : null };
+          }),
         }));
       },
 
@@ -201,6 +205,7 @@ export const useProjectStore = create<ProjectState>()(
             author,
             createdAt: new Date().toISOString(),
             resolved: false,
+            resolvedAt: null,
           };
           return { ...state, memos: [...state.memos, memo] };
         });
@@ -209,7 +214,11 @@ export const useProjectStore = create<ProjectState>()(
       toggleMemoResolved: (memoId) => {
         set((state) => ({
           ...state,
-          memos: state.memos.map((m) => (m.id === memoId ? { ...m, resolved: !m.resolved } : m)),
+          memos: state.memos.map((m) => {
+            if (m.id !== memoId) return m;
+            const resolved = !m.resolved;
+            return { ...m, resolved, resolvedAt: resolved ? new Date().toISOString() : null };
+          }),
         }));
       },
 

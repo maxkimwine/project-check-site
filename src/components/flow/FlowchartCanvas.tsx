@@ -165,6 +165,7 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
         position: { x: 0, y: 0 },
         createdAt: now,
         completed: n.completed,
+        completedAt: n.completedAt,
       };
     });
     const newEdges: FlowEdge[] = clip.edges.map((e) => ({

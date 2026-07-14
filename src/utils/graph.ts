@@ -87,6 +87,7 @@ export function insertNodeInChain(
     position: { x: 0, y: 0 },
     createdAt: now,
     completed: false,
+    completedAt: null,
   };
   const newEdges: FlowEdge[] = [
     { id: createId(), projectId, source: edge.source, target: newNode.id },
@@ -110,6 +111,7 @@ export function addBranchChild(
     position: { x: 0, y: 0 },
     createdAt: now,
     completed: false,
+    completedAt: null,
   };
   const newEdge: FlowEdge = {
     id: createId(),
@@ -135,6 +137,7 @@ export function addParentNode(
     position: { x: 0, y: 0 },
     createdAt: now,
     completed: false,
+    completedAt: null,
   };
   const newEdge: FlowEdge = {
     id: createId(),

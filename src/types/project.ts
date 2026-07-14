@@ -14,6 +14,7 @@ export interface FlowNode {
   position: { x: number; y: number };
   createdAt: string;
   completed: boolean;
+  completedAt: string | null;
 }
 
 export interface FlowEdge {
@@ -34,6 +35,7 @@ export interface Memo {
   author?: string;
   createdAt: string;
   resolved: boolean;
+  resolvedAt: string | null;
 }
 
 export interface MemoReply {
