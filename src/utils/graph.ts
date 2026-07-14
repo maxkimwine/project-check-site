@@ -4,6 +4,7 @@ import { createId } from './id';
 
 export const NODE_WIDTH = 200;
 export const NODE_HEIGHT = 72;
+const SIDE_GAP = 60;
 
 export function layout(
   nodes: FlowNode[],
@@ -13,10 +14,17 @@ export function layout(
   g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 80 });
   g.setDefaultEdgeLabel(() => ({}));
 
+  // Left/right branches are placed beside their parent (below), not by rank, so
+  // they're excluded from dagre's graph entirely -- otherwise dagre would treat a
+  // side-branch as just another rank-below child and shift the parent's *normal*
+  // children sideways to make room for it.
+  const verticalEdges = edges.filter((e) => e.branchSide !== 'left' && e.branchSide !== 'right');
+  const sideEdges = edges.filter((e) => e.branchSide === 'left' || e.branchSide === 'right');
+
   for (const node of nodes) {
     g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
   }
-  for (const edge of edges) {
+  for (const edge of verticalEdges) {
     g.setEdge(edge.source, edge.target);
   }
 
@@ -30,6 +38,38 @@ export function layout(
       y: pos.y - NODE_HEIGHT / 2,
     };
   }
+
+  // Re-anchor each side-branch: pin its target beside the parent's final position,
+  // then carry the target's whole (normally-connected) subtree along by the same
+  // delta, so anything hanging below a side-branch keeps its shape relative to it.
+  const childrenByParent = new Map<string, string[]>();
+  for (const e of verticalEdges) {
+    if (!childrenByParent.has(e.source)) childrenByParent.set(e.source, []);
+    childrenByParent.get(e.source)!.push(e.target);
+  }
+  function collectSubtree(rootId: string, acc: Set<string>) {
+    if (acc.has(rootId)) return;
+    acc.add(rootId);
+    for (const childId of childrenByParent.get(rootId) ?? []) collectSubtree(childId, acc);
+  }
+
+  for (const edge of sideEdges) {
+    const parentPos = positions[edge.source];
+    const targetPos = positions[edge.target];
+    if (!parentPos || !targetPos) continue;
+    const anchored = {
+      x: parentPos.x + (edge.branchSide === 'right' ? NODE_WIDTH + SIDE_GAP : -(NODE_WIDTH + SIDE_GAP)),
+      y: parentPos.y,
+    };
+    const dx = anchored.x - targetPos.x;
+    const dy = anchored.y - targetPos.y;
+    const subtree = new Set<string>();
+    collectSubtree(edge.target, subtree);
+    for (const id of subtree) {
+      positions[id] = { x: positions[id].x + dx, y: positions[id].y + dy };
+    }
+  }
+
   return positions;
 }
 

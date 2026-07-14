@@ -17,7 +17,6 @@ import {
   connectExistingNodes,
   deleteNodeReconnect,
   layout,
-  NODE_WIDTH,
 } from '../../utils/graph';
 import { createId } from '../../utils/id';
 import type { FlowEdge, FlowNode } from '../../types/project';
@@ -27,8 +26,13 @@ import { CanvasEdge } from './edges/CanvasEdge';
 import { NodeDetailPanel } from '../panel/NodeDetailPanel';
 
 const edgeTypes = { canvas: CanvasEdge };
-const BRANCH_GAP = 60;
 const GRID_SIZE = 40;
+
+function handlesForEdge(edge: FlowEdge): { sourceHandle: string; targetHandle: string } {
+  if (edge.branchSide === 'right') return { sourceHandle: 'right-source', targetHandle: 'left-target' };
+  if (edge.branchSide === 'left') return { sourceHandle: 'left-source', targetHandle: 'right-target' };
+  return { sourceHandle: 'bottom-source', targetHandle: 'top-target' };
+}
 
 interface FlowchartCanvasProps {
   projectId: string;
@@ -80,19 +84,7 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     );
     addNodes([newNode]);
     addEdges([newEdge]);
-    const nextNodes = [...nodes, newNode];
-    const nextEdges = [...edges, newEdge];
-    const positions = layout(nextNodes, nextEdges);
-    if (direction === 'left' || direction === 'right') {
-      const parentPos = positions[nodeId];
-      if (parentPos) {
-        positions[newNode.id] = {
-          x: parentPos.x + (direction === 'right' ? NODE_WIDTH + BRANCH_GAP : -(NODE_WIDTH + BRANCH_GAP)),
-          y: parentPos.y,
-        };
-      }
-    }
-    updateNodePositions(positions);
+    relayout([...nodes, newNode], [...edges, newEdge]);
   }
 
   function handleAddParent(nodeId: string) {
@@ -241,6 +233,8 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
   const rfNodes: Node[] = nodes.map((n) => {
     const incomingCount = edges.filter((e) => e.target === n.id).length;
     const outgoingCount = edges.filter((e) => e.source === n.id).length;
+    const hasLeftTarget = edges.some((e) => e.target === n.id && e.branchSide === 'right');
+    const hasRightTarget = edges.some((e) => e.target === n.id && e.branchSide === 'left');
 
     return {
       id: n.id,
@@ -258,10 +252,16 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
         canAddBottom: n.kind !== 'end' && outgoingCount === 0,
         canAddLeft:
           n.kind !== 'end' &&
+          !hasLeftTarget &&
           !edges.some((e) => e.source === n.id && e.branchSide === 'left'),
         canAddRight:
           n.kind !== 'end' &&
+          !hasRightTarget &&
           !edges.some((e) => e.source === n.id && e.branchSide === 'right'),
+        hasLeftSource: edges.some((e) => e.source === n.id && e.branchSide === 'left'),
+        hasRightSource: edges.some((e) => e.source === n.id && e.branchSide === 'right'),
+        hasLeftTarget,
+        hasRightTarget,
       } satisfies CustomNodeData,
       deletable: n.kind === 'task',
     };
@@ -271,6 +271,7 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     id: e.id,
     source: e.source,
     target: e.target,
+    ...handlesForEdge(e),
     type: 'canvas',
     selected: e.id === selectedEdgeId,
   }));

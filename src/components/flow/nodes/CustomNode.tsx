@@ -13,6 +13,10 @@ export interface CustomNodeData {
   canAddBottom: boolean;
   canAddLeft: boolean;
   canAddRight: boolean;
+  hasLeftSource: boolean;
+  hasRightSource: boolean;
+  hasLeftTarget: boolean;
+  hasRightTarget: boolean;
   [key: string]: unknown;
 }
 
@@ -37,6 +41,9 @@ const kindBorder: Record<NodeKind, string> = {
 const addButtonClass =
   'absolute z-10 flex h-4 w-4 items-center justify-center rounded-full border border-zinc-600 bg-zinc-900 text-zinc-400 opacity-0 transition-opacity hover:border-teal-400 hover:text-teal-400 group-hover:opacity-100';
 
+const connectorClass =
+  'group !flex !h-[18px] !w-[18px] !items-center !justify-center !rounded-full !border-2 !border-zinc-500 !bg-zinc-900 transition-colors hover:!border-teal-400';
+
 export function CustomNode({ id, data, selected }: NodeProps) {
   const {
     title,
@@ -49,6 +56,10 @@ export function CustomNode({ id, data, selected }: NodeProps) {
     canAddBottom,
     canAddLeft,
     canAddRight,
+    hasLeftSource,
+    hasRightSource,
+    hasLeftTarget,
+    hasRightTarget,
   } = data as unknown as CustomNodeData;
 
   return (
@@ -59,22 +70,68 @@ export function CustomNode({ id, data, selected }: NodeProps) {
     >
       {kind !== 'start' && (
         <Handle
+          id="top-target"
           type="target"
           position={Position.Top}
           title="드래그 도착 지점"
-          className="group !-top-2.5 !flex !h-[18px] !w-[18px] !items-center !justify-center !rounded-full !border-2 !border-zinc-500 !bg-zinc-900 transition-colors hover:!border-teal-400"
+          className={`${connectorClass} !-top-2.5`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500 transition-colors group-hover:bg-teal-400" />
         </Handle>
       )}
       {kind !== 'end' && (
         <Handle
+          id="bottom-source"
           type="source"
           position={Position.Bottom}
           title="드래그: 빈 곳에 놓으면 새 칸 추가, 다른 칸에 놓으면 합류 연결"
-          className="group !-bottom-2.5 !flex !h-[18px] !w-[18px] !items-center !justify-center !rounded-full !border-2 !border-zinc-500 !bg-zinc-900 transition-colors hover:!border-teal-400"
+          className={`${connectorClass} !-bottom-2.5`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500 transition-colors group-hover:bg-teal-400" />
+        </Handle>
+      )}
+      {hasLeftTarget && (
+        <Handle
+          id="left-target"
+          type="target"
+          position={Position.Left}
+          title="왼쪽에서 연결됨"
+          className={`${connectorClass} !-left-2.5`}
+        >
+          <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
+        </Handle>
+      )}
+      {hasLeftSource && (
+        <Handle
+          id="left-source"
+          type="source"
+          position={Position.Left}
+          title="왼쪽으로 연결됨"
+          className={`${connectorClass} !-left-2.5`}
+        >
+          <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
+        </Handle>
+      )}
+      {hasRightTarget && (
+        <Handle
+          id="right-target"
+          type="target"
+          position={Position.Right}
+          title="오른쪽에서 연결됨"
+          className={`${connectorClass} !-right-2.5`}
+        >
+          <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
+        </Handle>
+      )}
+      {hasRightSource && (
+        <Handle
+          id="right-source"
+          type="source"
+          position={Position.Right}
+          title="오른쪽으로 연결됨"
+          className={`${connectorClass} !-right-2.5`}
+        >
+          <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
         </Handle>
       )}
 
