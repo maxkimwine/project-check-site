@@ -29,7 +29,7 @@ export function ProjectCreateModal({ onClose, onCreate }: ProjectCreateModalProp
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="예: F29H859 프로세서 모듈"
+            placeholder="예: 신제품 개발 프로젝트"
             className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-teal-400"
           />
         </div>
