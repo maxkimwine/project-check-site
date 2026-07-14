@@ -1,6 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { CheckCircle2, CheckSquare, MessageSquareText, Plus, Square } from 'lucide-react';
 import type { NodeKind } from '../../../types/project';
+import { NODE_HEIGHT } from '../../../utils/graph';
 
 export interface CustomNodeData {
   title: string;
@@ -64,9 +65,10 @@ export function CustomNode({ id, data, selected }: NodeProps) {
 
   return (
     <div
-      className={`group relative w-[200px] rounded-xl border bg-zinc-800 px-3.5 py-3 shadow-sm transition-colors ${kindBorder[kind]} ${
+      className={`group relative w-[200px] rounded-xl border bg-zinc-800 px-3.5 shadow-sm transition-colors ${kindBorder[kind]} ${
         selected ? 'ring-2 ring-yellow-400' : ''
       }`}
+      style={{ height: NODE_HEIGHT }}
     >
       {kind !== 'start' && (
         <Handle
@@ -218,13 +220,18 @@ export function CustomNode({ id, data, selected }: NodeProps) {
         </div>
       )}
 
-      {kindLabel[kind] && (
-        <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-          {kindLabel[kind]}
+      <div className="flex h-full flex-col justify-center overflow-hidden py-1">
+        {kindLabel[kind] && (
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+            {kindLabel[kind]}
+          </div>
+        )}
+        <div
+          title={title || kindPlaceholder[kind]}
+          className={`line-clamp-2 text-sm ${completed || !title ? 'text-zinc-500' : 'text-zinc-100'}`}
+        >
+          {title || kindPlaceholder[kind]}
         </div>
-      )}
-      <div className={`text-sm ${completed || !title ? 'text-zinc-500' : 'text-zinc-100'}`}>
-        {title || kindPlaceholder[kind]}
       </div>
     </div>
   );
