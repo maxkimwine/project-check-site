@@ -17,6 +17,7 @@ import {
   connectExistingNodes,
   deleteNodeReconnect,
   layout,
+  NODE_WIDTH,
 } from '../../utils/graph';
 import { createId } from '../../utils/id';
 import type { FlowEdge, FlowNode } from '../../types/project';
@@ -26,7 +27,8 @@ import { CanvasEdge } from './edges/CanvasEdge';
 import { NodeDetailPanel } from '../panel/NodeDetailPanel';
 
 const edgeTypes = { canvas: CanvasEdge };
-const MAX_CHILD_SLOTS = 3;
+const BRANCH_GAP = 60;
+const GRID_SIZE = 40;
 
 interface FlowchartCanvasProps {
   projectId: string;
@@ -70,11 +72,27 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     updateNodePositions(layout(nextNodes, nextEdges));
   }
 
-  function handleBranch(nodeId: string) {
-    const { newNode, newEdge } = addBranchChild(projectId, nodeId);
+  function handleBranch(nodeId: string, direction: 'bottom' | 'left' | 'right' = 'bottom') {
+    const { newNode, newEdge } = addBranchChild(
+      projectId,
+      nodeId,
+      direction === 'left' || direction === 'right' ? direction : undefined,
+    );
     addNodes([newNode]);
     addEdges([newEdge]);
-    relayout([...nodes, newNode], [...edges, newEdge]);
+    const nextNodes = [...nodes, newNode];
+    const nextEdges = [...edges, newEdge];
+    const positions = layout(nextNodes, nextEdges);
+    if (direction === 'left' || direction === 'right') {
+      const parentPos = positions[nodeId];
+      if (parentPos) {
+        positions[newNode.id] = {
+          x: parentPos.x + (direction === 'right' ? NODE_WIDTH + BRANCH_GAP : -(NODE_WIDTH + BRANCH_GAP)),
+          y: parentPos.y,
+        };
+      }
+    }
+    updateNodePositions(positions);
   }
 
   function handleAddParent(nodeId: string) {
@@ -88,7 +106,7 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     if (direction === 'top') {
       handleAddParent(nodeId);
     } else {
-      handleBranch(nodeId);
+      handleBranch(nodeId, direction);
     }
   }
 
@@ -162,6 +180,7 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
       projectId,
       source: idMap.get(e.source)!,
       target: idMap.get(e.target)!,
+      branchSide: e.branchSide,
     }));
     addNodes(newNodes);
     addEdges(newEdges);
@@ -237,8 +256,12 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
         onToggleCompleted: toggleNodeCompleted,
         canAddTop: n.kind !== 'start' && incomingCount === 0,
         canAddBottom: n.kind !== 'end' && outgoingCount === 0,
-        canAddLeft: n.kind !== 'end' && outgoingCount <= 1,
-        canAddRight: n.kind !== 'end' && outgoingCount <= MAX_CHILD_SLOTS - 1,
+        canAddLeft:
+          n.kind !== 'end' &&
+          !edges.some((e) => e.source === n.id && e.branchSide === 'left'),
+        canAddRight:
+          n.kind !== 'end' &&
+          !edges.some((e) => e.source === n.id && e.branchSide === 'right'),
       } satisfies CustomNodeData,
       deletable: n.kind === 'task',
     };
@@ -287,10 +310,12 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
         onConnect={handleConnect}
         onConnectEnd={handleConnectEnd}
         connectionRadius={40}
+        snapToGrid
+        snapGrid={[GRID_SIZE, GRID_SIZE]}
         fitView
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#3f3f46" gap={20} />
+        <Background color="#3f3f46" gap={GRID_SIZE} />
         <Controls showInteractive={false} />
       </ReactFlow>
 

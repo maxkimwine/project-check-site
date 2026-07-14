@@ -28,6 +28,12 @@ const kindLabel: Record<NodeKind, string> = {
   end: '완료',
 };
 
+const kindBorder: Record<NodeKind, string> = {
+  start: 'border-emerald-500/60',
+  task: 'border-zinc-700',
+  end: 'border-violet-500/60',
+};
+
 const addButtonClass =
   'absolute z-10 flex h-4 w-4 items-center justify-center rounded-full border border-zinc-600 bg-zinc-900 text-zinc-400 opacity-0 transition-opacity hover:border-teal-400 hover:text-teal-400 group-hover:opacity-100';
 
@@ -47,9 +53,9 @@ export function CustomNode({ id, data, selected }: NodeProps) {
 
   return (
     <div
-      className={`group relative w-[200px] rounded-xl border-2 bg-zinc-800 px-3.5 py-3 shadow-sm transition-colors ${
-        completed ? 'border-zinc-600' : 'border-white'
-      } ${selected ? 'ring-2 ring-yellow-400' : ''}`}
+      className={`group relative w-[200px] rounded-xl border bg-zinc-800 px-3.5 py-3 shadow-sm transition-colors ${kindBorder[kind]} ${
+        selected ? 'ring-2 ring-yellow-400' : ''
+      }`}
     >
       {kind !== 'start' && (
         <Handle
@@ -160,7 +166,7 @@ export function CustomNode({ id, data, selected }: NodeProps) {
           {kindLabel[kind]}
         </div>
       )}
-      <div className={`text-sm ${title ? 'text-zinc-100' : 'text-zinc-500'}`}>
+      <div className={`text-sm ${completed || !title ? 'text-zinc-500' : 'text-zinc-100'}`}>
         {title || kindPlaceholder[kind]}
       </div>
     </div>

@@ -2,8 +2,8 @@ import dagre from '@dagrejs/dagre';
 import type { FlowEdge, FlowNode } from '../types/project';
 import { createId } from './id';
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 72;
+export const NODE_WIDTH = 200;
+export const NODE_HEIGHT = 72;
 
 export function layout(
   nodes: FlowNode[],
@@ -59,6 +59,7 @@ export function insertNodeInChain(
 export function addBranchChild(
   projectId: string,
   parentNodeId: string,
+  branchSide?: 'left' | 'right',
 ): { newNode: FlowNode; newEdge: FlowEdge } {
   const now = new Date().toISOString();
   const newNode: FlowNode = {
@@ -75,6 +76,7 @@ export function addBranchChild(
     projectId,
     source: parentNodeId,
     target: newNode.id,
+    branchSide,
   };
   return { newNode, newEdge };
 }

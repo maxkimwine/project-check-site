@@ -82,7 +82,7 @@ export const useProjectStore = create<ProjectState>()(
           const source = nodeIdMap.get(e.source);
           const target = nodeIdMap.get(e.target);
           if (!source || !target) return [];
-          return [{ id: createId(), projectId, source, target }];
+          return [{ id: createId(), projectId, source, target, branchSide: e.branchSide }];
         });
 
         const memoIdMap = new Map<string, string>();

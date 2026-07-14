@@ -21,6 +21,10 @@ export interface FlowEdge {
   projectId: string;
   source: string;
   target: string;
+  // Which side of the source node's "+" button created this edge, so the
+  // canvas can hide that specific button once it's been used. Undefined for
+  // edges made via drag-connect, chain-insert, or the initial seed.
+  branchSide?: 'left' | 'right';
 }
 
 export interface Memo {

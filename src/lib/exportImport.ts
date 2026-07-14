@@ -11,7 +11,7 @@ export interface ProjectExport {
     position: { x: number; y: number };
     completed?: boolean;
   }[];
-  edges: { id: string; source: string; target: string }[];
+  edges: { id: string; source: string; target: string; branchSide?: 'left' | 'right' }[];
   memos: {
     id: string;
     nodeId: string;
@@ -41,7 +41,7 @@ export function buildProjectExport(
       position,
       completed,
     })),
-    edges: edges.map(({ id, source, target }) => ({ id, source, target })),
+    edges: edges.map(({ id, source, target, branchSide }) => ({ id, source, target, branchSide })),
     memos: memos.map(({ id, nodeId, text, author, createdAt, resolved }) => ({
       id,
       nodeId,
