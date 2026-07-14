@@ -13,6 +13,7 @@ export interface FlowNode {
   title: string;
   position: { x: number; y: number };
   createdAt: string;
+  completed: boolean;
 }
 
 export interface FlowEdge {

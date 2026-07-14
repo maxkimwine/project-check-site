@@ -1,12 +1,18 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { CheckCircle2, MessageSquareText } from 'lucide-react';
+import { CheckCircle2, CheckSquare, MessageSquareText, Plus, Square } from 'lucide-react';
 import type { NodeKind } from '../../../types/project';
 
 export interface CustomNodeData {
   title: string;
   kind: NodeKind;
+  completed: boolean;
   memoState: 'none' | 'unresolved' | 'resolved';
-  onBranch: (nodeId: string) => void;
+  onAddDirection: (nodeId: string, direction: 'top' | 'bottom' | 'left' | 'right') => void;
+  onToggleCompleted: (nodeId: string) => void;
+  canAddTop: boolean;
+  canAddBottom: boolean;
+  canAddLeft: boolean;
+  canAddRight: boolean;
   [key: string]: unknown;
 }
 
@@ -16,26 +22,34 @@ const kindPlaceholder: Record<NodeKind, string> = {
   end: '프로젝트 완료',
 };
 
-const kindBorder: Record<NodeKind, string> = {
-  start: 'border-emerald-500/60',
-  task: 'border-zinc-700',
-  end: 'border-violet-500/60',
-};
-
 const kindLabel: Record<NodeKind, string> = {
   start: '시작',
   task: '',
   end: '완료',
 };
 
+const addButtonClass =
+  'absolute z-10 flex h-4 w-4 items-center justify-center rounded-full border border-zinc-600 bg-zinc-900 text-zinc-400 opacity-0 transition-opacity hover:border-teal-400 hover:text-teal-400 group-hover:opacity-100';
+
 export function CustomNode({ id, data, selected }: NodeProps) {
-  const { title, kind, memoState, onBranch } = data as unknown as CustomNodeData;
+  const {
+    title,
+    kind,
+    completed,
+    memoState,
+    onAddDirection,
+    onToggleCompleted,
+    canAddTop,
+    canAddBottom,
+    canAddLeft,
+    canAddRight,
+  } = data as unknown as CustomNodeData;
 
   return (
     <div
-      className={`group relative w-[200px] rounded-xl border bg-zinc-800 px-3.5 py-3 shadow-sm transition-colors ${kindBorder[kind]} ${
-        selected ? 'ring-2 ring-yellow-400' : ''
-      }`}
+      className={`group relative w-[200px] rounded-xl border-2 bg-zinc-800 px-3.5 py-3 shadow-sm transition-colors ${
+        completed ? 'border-zinc-600' : 'border-white'
+      } ${selected ? 'ring-2 ring-yellow-400' : ''}`}
     >
       {kind !== 'start' && (
         <Handle
@@ -51,16 +65,77 @@ export function CustomNode({ id, data, selected }: NodeProps) {
         <Handle
           type="source"
           position={Position.Bottom}
-          title="클릭: 새 칸 추가 / 드래그 시작 지점: 빈 곳에 놓으면 새 칸 추가, 다른 칸에 놓으면 합류 연결"
-          onClick={(e) => {
-            e.stopPropagation();
-            onBranch(id);
-          }}
+          title="드래그: 빈 곳에 놓으면 새 칸 추가, 다른 칸에 놓으면 합류 연결"
           className="group !-bottom-2.5 !flex !h-[18px] !w-[18px] !items-center !justify-center !rounded-full !border-2 !border-zinc-500 !bg-zinc-900 transition-colors hover:!border-teal-400"
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500 transition-colors group-hover:bg-teal-400" />
         </Handle>
       )}
+
+      {canAddTop && (
+        <button
+          type="button"
+          title="이전 단계 추가"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddDirection(id, 'top');
+          }}
+          className={`${addButtonClass} -top-2.5 left-4`}
+        >
+          <Plus size={10} />
+        </button>
+      )}
+      {canAddBottom && (
+        <button
+          type="button"
+          title="다음 단계 추가"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddDirection(id, 'bottom');
+          }}
+          className={`${addButtonClass} -bottom-2.5 right-4`}
+        >
+          <Plus size={10} />
+        </button>
+      )}
+      {canAddLeft && (
+        <button
+          type="button"
+          title="갈래 추가 (왼쪽)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddDirection(id, 'left');
+          }}
+          className={`${addButtonClass} -left-2.5 top-1/2 -translate-y-1/2`}
+        >
+          <Plus size={10} />
+        </button>
+      )}
+      {canAddRight && (
+        <button
+          type="button"
+          title="갈래 추가 (오른쪽)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddDirection(id, 'right');
+          }}
+          className={`${addButtonClass} -right-2.5 top-1/2 -translate-y-1/2`}
+        >
+          <Plus size={10} />
+        </button>
+      )}
+
+      <button
+        type="button"
+        title={completed ? '완료 취소' : '완료로 표시'}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleCompleted(id);
+        }}
+        className="absolute -top-2 -left-2 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-500 transition-colors hover:text-teal-400"
+      >
+        {completed ? <CheckSquare size={14} className="text-zinc-400" /> : <Square size={14} />}
+      </button>
 
       {memoState !== 'none' && (
         <div className="absolute -top-2 -right-2">

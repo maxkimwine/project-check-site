@@ -4,7 +4,13 @@ export interface ProjectExport {
   version: 1;
   exportedAt: string;
   project: { name: string };
-  nodes: { id: string; kind: NodeKind; title: string; position: { x: number; y: number } }[];
+  nodes: {
+    id: string;
+    kind: NodeKind;
+    title: string;
+    position: { x: number; y: number };
+    completed?: boolean;
+  }[];
   edges: { id: string; source: string; target: string }[];
   memos: {
     id: string;
@@ -28,7 +34,13 @@ export function buildProjectExport(
     version: 1,
     exportedAt: new Date().toISOString(),
     project: { name: project.name },
-    nodes: nodes.map(({ id, kind, title, position }) => ({ id, kind, title, position })),
+    nodes: nodes.map(({ id, kind, title, position, completed }) => ({
+      id,
+      kind,
+      title,
+      position,
+      completed,
+    })),
     edges: edges.map(({ id, source, target }) => ({ id, source, target })),
     memos: memos.map(({ id, nodeId, text, author, createdAt, resolved }) => ({
       id,

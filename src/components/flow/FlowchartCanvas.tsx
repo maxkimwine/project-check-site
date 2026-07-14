@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   Controls,
@@ -13,18 +13,20 @@ import '@xyflow/react/dist/style.css';
 import { useProjectStore } from '../../state/projectStore';
 import {
   addBranchChild,
+  addParentNode,
   connectExistingNodes,
   deleteNodeReconnect,
-  insertNodeInChain,
   layout,
 } from '../../utils/graph';
+import { createId } from '../../utils/id';
 import type { FlowEdge, FlowNode } from '../../types/project';
 import { nodeTypes } from './nodes/nodeTypes';
 import type { CustomNodeData } from './nodes/CustomNode';
-import { InsertEdge, type InsertEdgeData } from './edges/InsertEdge';
+import { CanvasEdge } from './edges/CanvasEdge';
 import { NodeDetailPanel } from '../panel/NodeDetailPanel';
 
-const edgeTypes = { insert: InsertEdge };
+const edgeTypes = { canvas: CanvasEdge };
+const MAX_CHILD_SLOTS = 3;
 
 interface FlowchartCanvasProps {
   projectId: string;
@@ -39,6 +41,7 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
   const removeEdges = useProjectStore((s) => s.removeEdges);
   const removeNode = useProjectStore((s) => s.removeNode);
   const updateNodePositions = useProjectStore((s) => s.updateNodePositions);
+  const toggleNodeCompleted = useProjectStore((s) => s.toggleNodeCompleted);
 
   const nodes = useMemo(
     () => allNodes.filter((n) => n.projectId === projectId),
@@ -49,8 +52,10 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     [allEdges, projectId],
   );
 
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  // In-memory only (not the OS clipboard): scoped to this tab/session, cleared on reload.
+  const clipboardRef = useRef<{ nodes: FlowNode[]; edges: FlowEdge[] } | null>(null);
 
   function memoStateFor(nodeId: string): 'none' | 'unresolved' | 'resolved' {
     const nodeMemos = memos.filter((m) => m.nodeId === nodeId);
@@ -72,17 +77,19 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     relayout([...nodes, newNode], [...edges, newEdge]);
   }
 
-  function handleInsert(edgeId: string) {
-    const edge = edges.find((e) => e.id === edgeId);
-    if (!edge) return;
-    const { newNode, newEdges, removedEdgeId } = insertNodeInChain(projectId, edge);
-    removeEdges([removedEdgeId]);
+  function handleAddParent(nodeId: string) {
+    const { newNode, newEdge } = addParentNode(projectId, nodeId);
     addNodes([newNode]);
-    addEdges(newEdges);
-    relayout(
-      [...nodes, newNode],
-      [...edges.filter((e) => e.id !== removedEdgeId), ...newEdges],
-    );
+    addEdges([newEdge]);
+    relayout([...nodes, newNode], [...edges, newEdge]);
+  }
+
+  function handleAddDirection(nodeId: string, direction: 'top' | 'bottom' | 'left' | 'right') {
+    if (direction === 'top') {
+      handleAddParent(nodeId);
+    } else {
+      handleBranch(nodeId);
+    }
   }
 
   function handleDeleteNode(nodeId: string) {
@@ -90,7 +97,7 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     removeEdges(removedEdgeIds);
     addEdges(newEdges);
     removeNode(nodeId);
-    setSelectedNodeId(null);
+    setSelectedNodeIds([]);
     relayout(
       nodes.filter((n) => n.id !== nodeId),
       [...edges.filter((e) => !removedEdgeIds.includes(e.id)), ...newEdges],
@@ -122,6 +129,46 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     updateNodePositions({ [node.id]: node.position });
   };
 
+  function handleCopy() {
+    const copyableIds = new Set(
+      nodes.filter((n) => selectedNodeIds.includes(n.id) && n.kind === 'task').map((n) => n.id),
+    );
+    if (copyableIds.size === 0) return;
+    const copiedNodes = nodes.filter((n) => copyableIds.has(n.id));
+    const copiedEdges = edges.filter((e) => copyableIds.has(e.source) && copyableIds.has(e.target));
+    clipboardRef.current = { nodes: copiedNodes, edges: copiedEdges };
+  }
+
+  function handlePaste() {
+    const clip = clipboardRef.current;
+    if (!clip || clip.nodes.length === 0) return;
+    const now = new Date().toISOString();
+    const idMap = new Map<string, string>();
+    const newNodes: FlowNode[] = clip.nodes.map((n) => {
+      const newId = createId();
+      idMap.set(n.id, newId);
+      return {
+        id: newId,
+        projectId,
+        kind: n.kind,
+        title: n.title,
+        position: { x: 0, y: 0 },
+        createdAt: now,
+        completed: n.completed,
+      };
+    });
+    const newEdges: FlowEdge[] = clip.edges.map((e) => ({
+      id: createId(),
+      projectId,
+      source: idMap.get(e.source)!,
+      target: idMap.get(e.target)!,
+    }));
+    addNodes(newNodes);
+    addEdges(newEdges);
+    relayout([...nodes, ...newNodes], [...edges, ...newEdges]);
+    setSelectedNodeIds(newNodes.map((n) => n.id));
+  }
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key !== 'Delete') return;
@@ -136,6 +183,22 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedEdgeId]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const active = document.activeElement;
+      const isEditable =
+        active instanceof HTMLElement &&
+        (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+      if (isEditable) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === 'c' || e.key === 'C') handleCopy();
+      if (e.key === 'v' || e.key === 'V') handlePaste();
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges, selectedNodeIds, projectId]);
 
   // Positions are only ever written by relayout()/drag-stop, so data that predates
   // that (or was seeded without positions) can have every node stacked on top of
@@ -156,30 +219,43 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  const rfNodes: Node[] = nodes.map((n) => ({
-    id: n.id,
-    type: 'custom',
-    position: n.position,
-    selected: n.id === selectedNodeId,
-    data: {
-      title: n.title,
-      kind: n.kind,
-      memoState: memoStateFor(n.id),
-      onBranch: handleBranch,
-    } satisfies CustomNodeData,
-    deletable: n.kind === 'task',
-  }));
+  const rfNodes: Node[] = nodes.map((n) => {
+    const incomingCount = edges.filter((e) => e.target === n.id).length;
+    const outgoingCount = edges.filter((e) => e.source === n.id).length;
+
+    return {
+      id: n.id,
+      type: 'custom',
+      position: n.position,
+      selected: selectedNodeIds.includes(n.id),
+      data: {
+        title: n.title,
+        kind: n.kind,
+        completed: n.completed,
+        memoState: memoStateFor(n.id),
+        onAddDirection: handleAddDirection,
+        onToggleCompleted: toggleNodeCompleted,
+        canAddTop: n.kind !== 'start' && incomingCount === 0,
+        canAddBottom: n.kind !== 'end' && outgoingCount === 0,
+        canAddLeft: n.kind !== 'end' && outgoingCount <= 1,
+        canAddRight: n.kind !== 'end' && outgoingCount <= MAX_CHILD_SLOTS - 1,
+      } satisfies CustomNodeData,
+      deletable: n.kind === 'task',
+    };
+  });
 
   const rfEdges: Edge[] = edges.map((e) => ({
     id: e.id,
     source: e.source,
     target: e.target,
-    type: 'insert',
+    type: 'canvas',
     selected: e.id === selectedEdgeId,
-    data: { onInsert: handleInsert } satisfies InsertEdgeData,
   }));
 
-  const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null;
+  const selectedNode =
+    selectedNodeIds.length === 1
+      ? (nodes.find((n) => n.id === selectedNodeIds[0]) ?? null)
+      : null;
 
   return (
     <div className="relative h-full w-full">
@@ -189,16 +265,22 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         colorMode="dark"
-        onNodeClick={(_, node) => {
+        onNodeClick={(event, node) => {
           setSelectedEdgeId(null);
-          setSelectedNodeId(node.id);
+          if (event.shiftKey) {
+            setSelectedNodeIds((prev) =>
+              prev.includes(node.id) ? prev.filter((id) => id !== node.id) : [...prev, node.id],
+            );
+          } else {
+            setSelectedNodeIds([node.id]);
+          }
         }}
         onEdgeClick={(_, edge) => {
-          setSelectedNodeId(null);
+          setSelectedNodeIds([]);
           setSelectedEdgeId(edge.id);
         }}
         onPaneClick={() => {
-          setSelectedNodeId(null);
+          setSelectedNodeIds([]);
           setSelectedEdgeId(null);
         }}
         onNodeDragStop={handleNodeDragStop}
@@ -215,7 +297,7 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
       {selectedNode && (
         <NodeDetailPanel
           node={selectedNode}
-          onClose={() => setSelectedNodeId(null)}
+          onClose={() => setSelectedNodeIds([])}
           onDelete={
             selectedNode.kind === 'task' ? () => handleDeleteNode(selectedNode.id) : undefined
           }

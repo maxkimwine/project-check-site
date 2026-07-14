@@ -46,6 +46,7 @@ export function insertNodeInChain(
     title: '',
     position: { x: 0, y: 0 },
     createdAt: now,
+    completed: false,
   };
   const newEdges: FlowEdge[] = [
     { id: createId(), projectId, source: edge.source, target: newNode.id },
@@ -67,12 +68,37 @@ export function addBranchChild(
     title: '',
     position: { x: 0, y: 0 },
     createdAt: now,
+    completed: false,
   };
   const newEdge: FlowEdge = {
     id: createId(),
     projectId,
     source: parentNodeId,
     target: newNode.id,
+  };
+  return { newNode, newEdge };
+}
+
+/** Create a new preceding node: a new unconnected task node linked into childNodeId. */
+export function addParentNode(
+  projectId: string,
+  childNodeId: string,
+): { newNode: FlowNode; newEdge: FlowEdge } {
+  const now = new Date().toISOString();
+  const newNode: FlowNode = {
+    id: createId(),
+    projectId,
+    kind: 'task',
+    title: '',
+    position: { x: 0, y: 0 },
+    createdAt: now,
+    completed: false,
+  };
+  const newEdge: FlowEdge = {
+    id: createId(),
+    projectId,
+    source: newNode.id,
+    target: childNodeId,
   };
   return { newNode, newEdge };
 }

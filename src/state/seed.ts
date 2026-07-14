@@ -19,6 +19,7 @@ export function seedProject(name: string): SeededProject {
     title: '',
     position: { x: 0, y: 0 },
     createdAt: now,
+    completed: false,
   };
   const middleNode: FlowNode = {
     id: createId(),
@@ -27,6 +28,7 @@ export function seedProject(name: string): SeededProject {
     title: '',
     position: { x: 0, y: 0 },
     createdAt: now,
+    completed: false,
   };
   const endNode: FlowNode = {
     id: createId(),
@@ -35,6 +37,7 @@ export function seedProject(name: string): SeededProject {
     title: '',
     position: { x: 0, y: 0 },
     createdAt: now,
+    completed: false,
   };
 
   const edges: FlowEdge[] = [
