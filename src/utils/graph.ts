@@ -53,21 +53,32 @@ export function layout(
     for (const childId of childrenByParent.get(rootId) ?? []) collectSubtree(childId, acc);
   }
 
-  for (const edge of sideEdges) {
-    const parentPos = positions[edge.source];
-    const targetPos = positions[edge.target];
-    if (!parentPos || !targetPos) continue;
-    const anchored = {
-      x: parentPos.x + (edge.branchSide === 'right' ? NODE_WIDTH + SIDE_GAP : -(NODE_WIDTH + SIDE_GAP)),
-      y: parentPos.y,
-    };
-    const dx = anchored.x - targetPos.x;
-    const dy = anchored.y - targetPos.y;
-    const subtree = new Set<string>();
-    collectSubtree(edge.target, subtree);
-    for (const id of subtree) {
-      positions[id] = { x: positions[id].x + dx, y: positions[id].y + dy };
-    }
+  // Multiple side-branches off the same parent, on the same side, are stacked
+  // vertically below one another so they don't all land on the same spot.
+  const sideGroups = new Map<string, FlowEdge[]>();
+  for (const e of sideEdges) {
+    const key = `${e.source}:${e.branchSide}`;
+    if (!sideGroups.has(key)) sideGroups.set(key, []);
+    sideGroups.get(key)!.push(e);
+  }
+
+  for (const group of sideGroups.values()) {
+    group.forEach((edge, index) => {
+      const parentPos = positions[edge.source];
+      const targetPos = positions[edge.target];
+      if (!parentPos || !targetPos) return;
+      const anchored = {
+        x: parentPos.x + (edge.branchSide === 'right' ? NODE_WIDTH + SIDE_GAP : -(NODE_WIDTH + SIDE_GAP)),
+        y: parentPos.y + index * (NODE_HEIGHT + SIDE_GAP),
+      };
+      const dx = anchored.x - targetPos.x;
+      const dy = anchored.y - targetPos.y;
+      const subtree = new Set<string>();
+      collectSubtree(edge.target, subtree);
+      for (const id of subtree) {
+        positions[id] = { x: positions[id].x + dx, y: positions[id].y + dy };
+      }
+    });
   }
 
   return positions;

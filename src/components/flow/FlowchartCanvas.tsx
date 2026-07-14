@@ -232,8 +232,6 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
   }, [projectId]);
 
   const rfNodes: Node[] = nodes.map((n) => {
-    const incomingCount = edges.filter((e) => e.target === n.id).length;
-    const outgoingCount = edges.filter((e) => e.source === n.id).length;
     const hasLeftTarget = edges.some((e) => e.target === n.id && e.branchSide === 'right');
     const hasRightTarget = edges.some((e) => e.target === n.id && e.branchSide === 'left');
 
@@ -249,16 +247,10 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
         memoState: memoStateFor(n.id),
         onAddDirection: handleAddDirection,
         onToggleCompleted: toggleNodeCompleted,
-        canAddTop: n.kind !== 'start' && incomingCount === 0,
-        canAddBottom: n.kind !== 'end' && outgoingCount === 0,
-        canAddLeft:
-          n.kind !== 'end' &&
-          !hasLeftTarget &&
-          !edges.some((e) => e.source === n.id && e.branchSide === 'left'),
-        canAddRight:
-          n.kind !== 'end' &&
-          !hasRightTarget &&
-          !edges.some((e) => e.source === n.id && e.branchSide === 'right'),
+        canAddTop: n.kind !== 'start',
+        canAddBottom: n.kind !== 'end',
+        canAddLeft: n.kind !== 'end' && !hasLeftTarget,
+        canAddRight: n.kind !== 'end' && !hasRightTarget,
         hasLeftSource: edges.some((e) => e.source === n.id && e.branchSide === 'left'),
         hasRightSource: edges.some((e) => e.source === n.id && e.branchSide === 'right'),
         hasLeftTarget,

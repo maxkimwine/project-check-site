@@ -98,7 +98,7 @@ export function CustomNode({ id, data, selected }: NodeProps) {
           type="target"
           position={Position.Left}
           title="왼쪽에서 연결됨"
-          className={`${connectorClass} !-left-2.5`}
+          className={`${connectorClass} !-left-2.5 !top-[25%]`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
         </Handle>
@@ -109,7 +109,7 @@ export function CustomNode({ id, data, selected }: NodeProps) {
           type="source"
           position={Position.Left}
           title="왼쪽으로 연결됨"
-          className={`${connectorClass} !-left-2.5`}
+          className={`${connectorClass} !-left-2.5 !top-1/2`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
         </Handle>
@@ -120,7 +120,7 @@ export function CustomNode({ id, data, selected }: NodeProps) {
           type="target"
           position={Position.Right}
           title="오른쪽에서 연결됨"
-          className={`${connectorClass} !-right-2.5`}
+          className={`${connectorClass} !-right-2.5 !top-[25%]`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
         </Handle>
@@ -131,7 +131,7 @@ export function CustomNode({ id, data, selected }: NodeProps) {
           type="source"
           position={Position.Right}
           title="오른쪽으로 연결됨"
-          className={`${connectorClass} !-right-2.5`}
+          className={`${connectorClass} !-right-2.5 !top-1/2`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
         </Handle>
@@ -171,7 +171,7 @@ export function CustomNode({ id, data, selected }: NodeProps) {
             e.stopPropagation();
             onAddDirection(id, 'left');
           }}
-          className={`${addButtonClass} -left-2.5 top-1/2 -translate-y-1/2`}
+          className={`${addButtonClass} -left-2.5 top-[75%] -translate-y-1/2`}
         >
           <Plus size={10} />
         </button>
@@ -184,7 +184,7 @@ export function CustomNode({ id, data, selected }: NodeProps) {
             e.stopPropagation();
             onAddDirection(id, 'right');
           }}
-          className={`${addButtonClass} -right-2.5 top-1/2 -translate-y-1/2`}
+          className={`${addButtonClass} -right-2.5 top-[75%] -translate-y-1/2`}
         >
           <Plus size={10} />
         </button>
