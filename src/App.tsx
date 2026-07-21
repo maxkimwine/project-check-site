@@ -2,9 +2,16 @@ import { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ProjectListScreen } from './components/screens/ProjectListScreen';
 import { ProjectFlowScreen } from './components/screens/ProjectFlowScreen';
-import { useProjectStore } from './state/projectStore';
+import { useProjectStore, undoAndSync, redoAndSync } from './state/projectStore';
 
 function App() {
+  const hydrated = useProjectStore((s) => s.hydrated);
+  const hydrate = useProjectStore((s) => s.hydrate);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const active = document.activeElement;
@@ -17,18 +24,26 @@ function App() {
       if (e.key === 'z' || e.key === 'Z') {
         e.preventDefault();
         if (e.shiftKey) {
-          useProjectStore.temporal.getState().redo();
+          redoAndSync();
         } else {
-          useProjectStore.temporal.getState().undo();
+          undoAndSync();
         }
       } else if (e.key === 'y' || e.key === 'Y') {
         e.preventDefault();
-        useProjectStore.temporal.getState().redo();
+        redoAndSync();
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  if (!hydrated) {
+    return (
+      <div className="flex h-screen items-center justify-center text-sm text-zinc-500">
+        불러오는 중...
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>

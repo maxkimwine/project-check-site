@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Upload, Workflow } from 'lucide-react';
 import { useProjectStore } from '../../state/projectStore';
 import { parseProjectExport } from '../../lib/exportImport';
+import { useOpenProjectIds } from '../../hooks/useProjectPresence';
 import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { ProjectCreateModal } from './ProjectCreateModal';
@@ -13,6 +14,7 @@ export function ProjectListScreen() {
   const createProject = useProjectStore((s) => s.createProject);
   const importProject = useProjectStore((s) => s.importProject);
   const deleteProject = useProjectStore((s) => s.deleteProject);
+  const openProjectIds = useOpenProjectIds();
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +84,12 @@ export function ProjectListScreen() {
               >
                 <Workflow size={18} className="shrink-0 text-teal-400" />
                 <span className="flex-1 text-sm font-medium text-zinc-100">{p.name}</span>
+                {openProjectIds.has(p.id) && (
+                  <span className="flex items-center gap-1 rounded-full bg-teal-500/10 px-2 py-0.5 text-[11px] text-teal-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+                    편집 중
+                  </span>
+                )}
                 <span className="text-xs text-zinc-500">
                   {new Date(p.createdAt).toLocaleDateString('ko-KR')}
                 </span>
