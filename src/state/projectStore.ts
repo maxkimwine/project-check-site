@@ -21,6 +21,7 @@ interface ProjectState {
   createProject: (name: string) => Project;
   importProject: (data: ProjectExport) => Project;
   deleteProject: (projectId: string) => void;
+  updateProjectName: (projectId: string, name: string) => void;
 
   updateNodeTitle: (nodeId: string, title: string) => void;
   toggleNodeCompleted: (nodeId: string) => void;
@@ -197,6 +198,19 @@ export const useProjectStore = create<ProjectState>()(
           };
         });
         repo.deleteProjectCascade(projectId).catch(reportSyncError);
+      },
+
+      updateProjectName: (projectId, name) => {
+        let updatedProject: Project | undefined;
+        set((state) => ({
+          ...state,
+          projects: state.projects.map((p) => {
+            if (p.id !== projectId) return p;
+            updatedProject = { ...p, name };
+            return updatedProject;
+          }),
+        }));
+        if (updatedProject) repo.upsertProjectsBulk([updatedProject]).catch(reportSyncError);
       },
 
       updateNodeTitle: (nodeId, title) => {

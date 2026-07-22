@@ -15,6 +15,9 @@ dist-ssr
 .env.local
 .claude/
 
+# Local-only secrets (e.g. Vercel 2FA recovery codes) — never commit
+Vercel/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

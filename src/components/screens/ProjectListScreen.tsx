@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Upload, Workflow } from 'lucide-react';
+import { Pencil, Plus, Trash2, Upload, Workflow } from 'lucide-react';
 import { useProjectStore } from '../../state/projectStore';
 import { parseProjectExport } from '../../lib/exportImport';
 import { useOpenProjectIds } from '../../hooks/useProjectPresence';
 import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { ProjectCreateModal } from './ProjectCreateModal';
+import { ProjectRenameModal } from './ProjectRenameModal';
 import { DeleteProjectConfirm } from '../controls/DeleteProjectConfirm';
 
 export function ProjectListScreen() {
@@ -14,9 +15,11 @@ export function ProjectListScreen() {
   const createProject = useProjectStore((s) => s.createProject);
   const importProject = useProjectStore((s) => s.importProject);
   const deleteProject = useProjectStore((s) => s.deleteProject);
+  const updateProjectName = useProjectStore((s) => s.updateProjectName);
   const openProjectIds = useOpenProjectIds();
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -95,6 +98,12 @@ export function ProjectListScreen() {
                 </span>
               </button>
               <IconButton
+                icon={<Pencil size={15} />}
+                label="프로젝트 이름 변경"
+                onClick={() => setRenameTarget({ id: p.id, name: p.name })}
+                className="mr-1 hover:text-teal-400"
+              />
+              <IconButton
                 icon={<Trash2 size={15} />}
                 label="프로젝트 삭제"
                 onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
@@ -107,6 +116,17 @@ export function ProjectListScreen() {
 
       {showCreate && (
         <ProjectCreateModal onClose={() => setShowCreate(false)} onCreate={handleCreate} />
+      )}
+
+      {renameTarget && (
+        <ProjectRenameModal
+          initialName={renameTarget.name}
+          onClose={() => setRenameTarget(null)}
+          onRename={(name) => {
+            updateProjectName(renameTarget.id, name);
+            setRenameTarget(null);
+          }}
+        />
       )}
 
       {deleteTarget && (
