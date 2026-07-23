@@ -7,6 +7,11 @@ import { createId } from '../utils/id';
 import { diffById } from '../utils/diff';
 import type { ProjectExport } from '../lib/exportImport';
 
+export interface SyncError {
+  title: string;
+  detail: string;
+}
+
 interface ProjectState {
   hydrated: boolean;
   projects: Project[];
@@ -14,9 +19,12 @@ interface ProjectState {
   edges: FlowEdge[];
   memos: Memo[];
   replies: MemoReply[];
+  syncError: SyncError | null;
 
   hydrate: () => Promise<void>;
   refetchProject: (projectId: string) => Promise<void>;
+  setSyncError: (error: SyncError) => void;
+  clearSyncError: () => void;
 
   createProject: (name: string) => Project;
   importProject: (data: ProjectExport) => Project;
@@ -42,9 +50,22 @@ interface ProjectState {
 // try to bulk-delete or overwrite rows in Supabase that were never actually touched by the user.
 let suppressUndo = false;
 
+function describeSyncError(err: unknown): string {
+  const detail = err instanceof Error ? err.message : String(err);
+  let hint = '';
+  if (/failed to fetch|networkerror/i.test(detail)) hint = '네트워크 연결 문제로 보입니다';
+  else if (/row-level security|rls/i.test(detail)) hint = '서버 접근 권한 설정 문제로 보입니다';
+  else if (/jwt|401|invalid api key/i.test(detail)) hint = '서버 접속 키 설정 문제로 보입니다';
+  else if (/foreign key/i.test(detail)) hint = '연관 데이터 참조 오류로 보입니다';
+  return hint ? `${detail}\n(${hint})` : detail;
+}
+
 function reportSyncError(err: unknown) {
   console.error(err);
-  alert('클라우드 저장에 실패했습니다. 네트워크 상태를 확인해주세요.');
+  useProjectStore.getState().setSyncError({
+    title: '클라우드 저장에 실패했습니다',
+    detail: describeSyncError(err),
+  });
 }
 
 export const useProjectStore = create<ProjectState>()(
@@ -56,6 +77,10 @@ export const useProjectStore = create<ProjectState>()(
       edges: [],
       memos: [],
       replies: [],
+      syncError: null,
+
+      setSyncError: (error) => set((state) => ({ ...state, syncError: error })),
+      clearSyncError: () => set((state) => ({ ...state, syncError: null })),
 
       hydrate: async () => {
         try {
@@ -65,8 +90,11 @@ export const useProjectStore = create<ProjectState>()(
           suppressUndo = false;
         } catch (err) {
           console.error(err);
-          alert('데이터를 불러오지 못했습니다. 새로고침해주세요.');
-          set((state) => ({ ...state, hydrated: true }));
+          set((state) => ({
+            ...state,
+            hydrated: true,
+            syncError: { title: '데이터를 불러오지 못했습니다', detail: describeSyncError(err) },
+          }));
         }
       },
 
@@ -405,7 +433,10 @@ async function syncDiffToSupabase(before: ProjectState, after: ProjectState) {
     await repo.deleteProjectsBulk(projectsDiff.deletedIds);
   } catch (err) {
     console.error(err);
-    alert('되돌리기/다시실행 내용을 클라우드에 반영하지 못했습니다.');
+    useProjectStore.getState().setSyncError({
+      title: '되돌리기/다시실행 내용을 클라우드에 반영하지 못했습니다',
+      detail: describeSyncError(err),
+    });
   }
 }
 

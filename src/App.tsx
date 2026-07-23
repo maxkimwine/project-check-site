@@ -2,11 +2,14 @@ import { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ProjectListScreen } from './components/screens/ProjectListScreen';
 import { ProjectFlowScreen } from './components/screens/ProjectFlowScreen';
+import { SyncErrorModal } from './components/controls/SyncErrorModal';
 import { useProjectStore, undoAndSync, redoAndSync } from './state/projectStore';
 
 function App() {
   const hydrated = useProjectStore((s) => s.hydrated);
   const hydrate = useProjectStore((s) => s.hydrate);
+  const syncError = useProjectStore((s) => s.syncError);
+  const clearSyncError = useProjectStore((s) => s.clearSyncError);
 
   useEffect(() => {
     hydrate();
@@ -51,6 +54,9 @@ function App() {
         <Route path="/" element={<ProjectListScreen />} />
         <Route path="/project/:projectId" element={<ProjectFlowScreen />} />
       </Routes>
+      {syncError && (
+        <SyncErrorModal title={syncError.title} detail={syncError.detail} onClose={clearSyncError} />
+      )}
     </BrowserRouter>
   );
 }
