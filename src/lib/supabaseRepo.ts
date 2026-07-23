@@ -198,30 +198,35 @@ export async function fetchProjectData(projectId: string): Promise<FetchedProjec
   };
 }
 
+// These all use upsert (not insert) even though callers only ever pass freshly-created rows:
+// the row's id is client-generated, so if a write ever fires twice for the same object (a
+// double-click before UI feedback, a resent request on a flaky connection, etc.) it must be a
+// harmless no-op instead of a primary-key violation.
+
 export async function insertProject(p: Project): Promise<void> {
-  const { error } = await supabase.from('projects').insert(projectToRow(p));
+  const { error } = await supabase.from('projects').upsert(projectToRow(p));
   if (error) throw new Error(error.message);
 }
 
 export async function insertNodes(nodes: FlowNode[]): Promise<void> {
   if (nodes.length === 0) return;
-  const { error } = await supabase.from('flow_nodes').insert(nodes.map(nodeToRow));
+  const { error } = await supabase.from('flow_nodes').upsert(nodes.map(nodeToRow));
   if (error) throw new Error(error.message);
 }
 
 export async function insertEdges(edges: FlowEdge[]): Promise<void> {
   if (edges.length === 0) return;
-  const { error } = await supabase.from('flow_edges').insert(edges.map(edgeToRow));
+  const { error } = await supabase.from('flow_edges').upsert(edges.map(edgeToRow));
   if (error) throw new Error(error.message);
 }
 
 export async function insertMemo(memo: Memo, projectId: string): Promise<void> {
-  const { error } = await supabase.from('memos').insert(memoToRow(memo, projectId));
+  const { error } = await supabase.from('memos').upsert(memoToRow(memo, projectId));
   if (error) throw new Error(error.message);
 }
 
 export async function insertReply(reply: MemoReply, projectId: string): Promise<void> {
-  const { error } = await supabase.from('memo_replies').insert(replyToRow(reply, projectId));
+  const { error } = await supabase.from('memo_replies').upsert(replyToRow(reply, projectId));
   if (error) throw new Error(error.message);
 }
 
