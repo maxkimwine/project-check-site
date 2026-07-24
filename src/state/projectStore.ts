@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
-import type { FlowEdge, FlowNode, Memo, MemoReply, Project } from '../types/project';
+import type { FlowEdge, FlowNode, Memo, MemoReply, Orientation, Project } from '../types/project';
 import * as repo from '../lib/supabaseRepo';
 import { seedProject } from './seed';
 import { createId } from '../utils/id';
 import { diffById } from '../utils/diff';
+import { layout } from '../utils/graph';
 import type { ProjectExport } from '../lib/exportImport';
 
 export interface SyncError {
@@ -30,6 +31,7 @@ interface ProjectState {
   importProject: (data: ProjectExport) => Project;
   deleteProject: (projectId: string) => void;
   updateProjectName: (projectId: string, name: string) => void;
+  setProjectOrientation: (projectId: string, orientation: Orientation) => void;
 
   updateNodeTitle: (nodeId: string, title: string) => void;
   toggleNodeCompleted: (nodeId: string) => void;
@@ -146,7 +148,7 @@ export const useProjectStore = create<ProjectState>()(
       importProject: (data: ProjectExport) => {
         const now = new Date().toISOString();
         const projectId = createId();
-        const project: Project = { id: projectId, name: data.project.name, createdAt: now };
+        const project: Project = { id: projectId, name: data.project.name, createdAt: now, orientation: 'vertical' };
 
         const nodeIdMap = new Map<string, string>();
         const nodes: FlowNode[] = data.nodes.map((n) => {
@@ -239,6 +241,32 @@ export const useProjectStore = create<ProjectState>()(
           }),
         }));
         if (updatedProject) repo.upsertProjectsBulk([updatedProject]).catch(reportSyncError);
+      },
+
+      setProjectOrientation: (projectId, orientation) => {
+        let updatedProject: Project | undefined;
+        const updatedNodes: FlowNode[] = [];
+        set((state) => {
+          const projectNodes = state.nodes.filter((n) => n.projectId === projectId);
+          const projectEdges = state.edges.filter((e) => e.projectId === projectId);
+          const positions = layout(projectNodes, projectEdges, orientation);
+          return {
+            ...state,
+            projects: state.projects.map((p) => {
+              if (p.id !== projectId) return p;
+              updatedProject = { ...p, orientation };
+              return updatedProject;
+            }),
+            nodes: state.nodes.map((n) => {
+              if (!positions[n.id]) return n;
+              const next = { ...n, position: positions[n.id] };
+              updatedNodes.push(next);
+              return next;
+            }),
+          };
+        });
+        if (updatedProject) repo.upsertProjectsBulk([updatedProject]).catch(reportSyncError);
+        if (updatedNodes.length > 0) repo.updateNodePositionsBulk(updatedNodes).catch(reportSyncError);
       },
 
       updateNodeTitle: (nodeId, title) => {

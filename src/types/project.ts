@@ -1,7 +1,10 @@
+export type Orientation = 'vertical' | 'horizontal';
+
 export interface Project {
   id: string;
   name: string;
   createdAt: string;
+  orientation: Orientation;
 }
 
 export type NodeKind = 'start' | 'task' | 'end';

@@ -1,23 +1,25 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, type NodeProps } from '@xyflow/react';
 import { CheckCircle2, CheckSquare, MessageSquareText, Plus, Square } from 'lucide-react';
 import type { NodeKind } from '../../../types/project';
 import { NODE_HEIGHT } from '../../../utils/graph';
+import { PORT_POSITION, handleClasses, buttonClasses, type Orientation, type Port } from '../../../utils/orientation';
 
 export interface CustomNodeData {
   title: string;
   kind: NodeKind;
   completed: boolean;
   memoState: 'none' | 'unresolved' | 'resolved';
-  onAddDirection: (nodeId: string, direction: 'top' | 'bottom' | 'left' | 'right') => void;
+  orientation: Orientation;
+  onAddDirection: (nodeId: string, port: Port) => void;
   onToggleCompleted: (nodeId: string) => void;
-  canAddTop: boolean;
-  canAddBottom: boolean;
-  canAddLeft: boolean;
-  canAddRight: boolean;
-  hasLeftSource: boolean;
-  hasRightSource: boolean;
-  hasLeftTarget: boolean;
-  hasRightTarget: boolean;
+  canAddPrev: boolean;
+  canAddNext: boolean;
+  canAddBranchA: boolean;
+  canAddBranchB: boolean;
+  hasBranchASource: boolean;
+  hasBranchBSource: boolean;
+  hasBranchATarget: boolean;
+  hasBranchBTarget: boolean;
   [key: string]: unknown;
 }
 
@@ -45,23 +47,33 @@ const addButtonClass =
 const connectorClass =
   'group !flex !h-[18px] !w-[18px] !items-center !justify-center !rounded-full !border-2 !border-zinc-500 !bg-zinc-900 transition-colors hover:!border-teal-400';
 
+const addButtonTitle: Record<Port, string> = {
+  prev: '이전 단계 추가',
+  next: '다음 단계 추가',
+  branchA: '갈래 추가',
+  branchB: '갈래 추가',
+};
+
 export function CustomNode({ id, data, selected }: NodeProps) {
   const {
     title,
     kind,
     completed,
     memoState,
+    orientation,
     onAddDirection,
     onToggleCompleted,
-    canAddTop,
-    canAddBottom,
-    canAddLeft,
-    canAddRight,
-    hasLeftSource,
-    hasRightSource,
-    hasLeftTarget,
-    hasRightTarget,
+    canAddPrev,
+    canAddNext,
+    canAddBranchA,
+    canAddBranchB,
+    hasBranchASource,
+    hasBranchBSource,
+    hasBranchATarget,
+    hasBranchBTarget,
   } = data as unknown as CustomNodeData;
+
+  const positions = PORT_POSITION[orientation];
 
   return (
     <div
@@ -72,119 +84,119 @@ export function CustomNode({ id, data, selected }: NodeProps) {
     >
       {kind !== 'start' && (
         <Handle
-          id="top-target"
+          id="main-target"
           type="target"
-          position={Position.Top}
+          position={positions.prev}
           title="드래그 도착 지점"
-          className={`${connectorClass} !-top-2.5`}
+          className={`${connectorClass} ${handleClasses(orientation, 'prev', 'target')}`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500 transition-colors group-hover:bg-teal-400" />
         </Handle>
       )}
       {kind !== 'end' && (
         <Handle
-          id="bottom-source"
+          id="main-source"
           type="source"
-          position={Position.Bottom}
+          position={positions.next}
           title="드래그: 빈 곳에 놓으면 새 칸 추가, 다른 칸에 놓으면 합류 연결"
-          className={`${connectorClass} !-bottom-2.5`}
+          className={`${connectorClass} ${handleClasses(orientation, 'next', 'source')}`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500 transition-colors group-hover:bg-teal-400" />
         </Handle>
       )}
-      {hasLeftTarget && (
+      {hasBranchATarget && (
         <Handle
-          id="left-target"
+          id="branchA-target"
           type="target"
-          position={Position.Left}
-          title="왼쪽에서 연결됨"
-          className={`${connectorClass} !-left-2.5 !top-[25%]`}
+          position={positions.branchA}
+          title="가지에서 연결됨"
+          className={`${connectorClass} ${handleClasses(orientation, 'branchA', 'target')}`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
         </Handle>
       )}
-      {hasLeftSource && (
+      {hasBranchASource && (
         <Handle
-          id="left-source"
+          id="branchA-source"
           type="source"
-          position={Position.Left}
-          title="왼쪽으로 연결됨"
-          className={`${connectorClass} !-left-2.5 !top-1/2`}
+          position={positions.branchA}
+          title="가지로 연결됨"
+          className={`${connectorClass} ${handleClasses(orientation, 'branchA', 'source')}`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
         </Handle>
       )}
-      {hasRightTarget && (
+      {hasBranchBTarget && (
         <Handle
-          id="right-target"
+          id="branchB-target"
           type="target"
-          position={Position.Right}
-          title="오른쪽에서 연결됨"
-          className={`${connectorClass} !-right-2.5 !top-[25%]`}
+          position={positions.branchB}
+          title="가지에서 연결됨"
+          className={`${connectorClass} ${handleClasses(orientation, 'branchB', 'target')}`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
         </Handle>
       )}
-      {hasRightSource && (
+      {hasBranchBSource && (
         <Handle
-          id="right-source"
+          id="branchB-source"
           type="source"
-          position={Position.Right}
-          title="오른쪽으로 연결됨"
-          className={`${connectorClass} !-right-2.5 !top-1/2`}
+          position={positions.branchB}
+          title="가지로 연결됨"
+          className={`${connectorClass} ${handleClasses(orientation, 'branchB', 'source')}`}
         >
           <span className="pointer-events-none h-1.5 w-1.5 rounded-full bg-zinc-500" />
         </Handle>
       )}
 
-      {canAddTop && (
+      {canAddPrev && (
         <button
           type="button"
-          title="이전 단계 추가"
+          title={addButtonTitle.prev}
           onClick={(e) => {
             e.stopPropagation();
-            onAddDirection(id, 'top');
+            onAddDirection(id, 'prev');
           }}
-          className={`${addButtonClass} -top-2.5 left-4`}
+          className={`${addButtonClass} ${buttonClasses(orientation, 'prev')}`}
         >
           <Plus size={10} />
         </button>
       )}
-      {canAddBottom && (
+      {canAddNext && (
         <button
           type="button"
-          title="다음 단계 추가"
+          title={addButtonTitle.next}
           onClick={(e) => {
             e.stopPropagation();
-            onAddDirection(id, 'bottom');
+            onAddDirection(id, 'next');
           }}
-          className={`${addButtonClass} -bottom-2.5 right-4`}
+          className={`${addButtonClass} ${buttonClasses(orientation, 'next')}`}
         >
           <Plus size={10} />
         </button>
       )}
-      {canAddLeft && (
+      {canAddBranchA && (
         <button
           type="button"
-          title="갈래 추가 (왼쪽)"
+          title={addButtonTitle.branchA}
           onClick={(e) => {
             e.stopPropagation();
-            onAddDirection(id, 'left');
+            onAddDirection(id, 'branchA');
           }}
-          className={`${addButtonClass} -left-2.5 top-[75%] -translate-y-1/2`}
+          className={`${addButtonClass} ${buttonClasses(orientation, 'branchA')}`}
         >
           <Plus size={10} />
         </button>
       )}
-      {canAddRight && (
+      {canAddBranchB && (
         <button
           type="button"
-          title="갈래 추가 (오른쪽)"
+          title={addButtonTitle.branchB}
           onClick={(e) => {
             e.stopPropagation();
-            onAddDirection(id, 'right');
+            onAddDirection(id, 'branchB');
           }}
-          className={`${addButtonClass} -right-2.5 top-[75%] -translate-y-1/2`}
+          className={`${addButtonClass} ${buttonClasses(orientation, 'branchB')}`}
         >
           <Plus size={10} />
         </button>

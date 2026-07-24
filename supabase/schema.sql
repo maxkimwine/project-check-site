@@ -7,6 +7,7 @@ create table if not exists projects (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   created_at timestamptz not null default now(),
+  orientation text not null default 'vertical' check (orientation in ('vertical', 'horizontal')),
   client_id text
 );
 

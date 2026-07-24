@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Download, RefreshCw, Save } from 'lucide-react';
+import { ArrowLeft, Check, Columns3, Download, RefreshCw, Rows3, Save } from 'lucide-react';
 import { useProjectStore } from '../../state/projectStore';
 import { buildProjectExport, downloadJson, sanitizeFilename } from '../../lib/exportImport';
 import { useTrackPresence } from '../../hooks/useProjectPresence';
@@ -17,6 +17,7 @@ export function ProjectFlowScreen() {
   const allEdges = useProjectStore((s) => s.edges);
   const allMemos = useProjectStore((s) => s.memos);
   const allReplies = useProjectStore((s) => s.replies);
+  const setProjectOrientation = useProjectStore((s) => s.setProjectOrientation);
   const [justSaved, setJustSaved] = useState(false);
   const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -48,6 +49,11 @@ export function ProjectFlowScreen() {
     savedTimeoutRef.current = setTimeout(() => setJustSaved(false), 1500);
   }
 
+  function handleToggleOrientation() {
+    if (!project) return;
+    setProjectOrientation(project.id, project.orientation === 'horizontal' ? 'vertical' : 'horizontal');
+  }
+
   if (!project) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-zinc-500">
@@ -74,6 +80,14 @@ export function ProjectFlowScreen() {
             다른 사용자가 수정했습니다 · 새로고침
           </button>
         )}
+        <Button
+          variant="secondary"
+          onClick={handleToggleOrientation}
+          title="방향을 바꾸면 손으로 옮긴 칸 위치가 초기화되고 자동으로 다시 배치됩니다"
+        >
+          {project.orientation === 'horizontal' ? <Columns3 size={14} /> : <Rows3 size={14} />}
+          {project.orientation === 'horizontal' ? '가로' : '세로'}
+        </Button>
         <Button variant="secondary" onClick={handleSave}>
           {justSaved ? <Check size={14} className="text-teal-400" /> : <Save size={14} />}
           {justSaved ? '저장됨' : '저장'}

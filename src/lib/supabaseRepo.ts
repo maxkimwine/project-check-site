@@ -1,10 +1,11 @@
 import { supabase, clientId } from './supabaseClient';
-import type { FlowEdge, FlowNode, Memo, MemoReply, NodeKind, Project } from '../types/project';
+import type { FlowEdge, FlowNode, Memo, MemoReply, NodeKind, Orientation, Project } from '../types/project';
 
 interface ProjectRow {
   id: string;
   name: string;
   created_at: string;
+  orientation: Orientation;
   client_id: string | null;
 }
 
@@ -52,10 +53,10 @@ interface MemoReplyRow {
 }
 
 function projectFromRow(r: ProjectRow): Project {
-  return { id: r.id, name: r.name, createdAt: r.created_at };
+  return { id: r.id, name: r.name, createdAt: r.created_at, orientation: r.orientation };
 }
 function projectToRow(p: Project): ProjectRow {
-  return { id: p.id, name: p.name, created_at: p.createdAt, client_id: clientId };
+  return { id: p.id, name: p.name, created_at: p.createdAt, orientation: p.orientation, client_id: clientId };
 }
 
 function nodeFromRow(r: FlowNodeRow): FlowNode {

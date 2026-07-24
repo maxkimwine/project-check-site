@@ -55,7 +55,7 @@ export function seedProject(name: string): SeededProject {
   }
 
   return {
-    project: { id: projectId, name, createdAt: now },
+    project: { id: projectId, name, createdAt: now, orientation: 'vertical' },
     nodes,
     edges,
   };

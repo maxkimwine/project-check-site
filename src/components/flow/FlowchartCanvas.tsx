@@ -20,6 +20,7 @@ import {
 } from '../../utils/graph';
 import { createId } from '../../utils/id';
 import type { FlowEdge, FlowNode } from '../../types/project';
+import type { Port } from '../../utils/orientation';
 import { nodeTypes } from './nodes/nodeTypes';
 import type { CustomNodeData } from './nodes/CustomNode';
 import { CanvasEdge } from './edges/CanvasEdge';
@@ -28,10 +29,14 @@ import { NodeDetailPanel } from '../panel/NodeDetailPanel';
 const edgeTypes = { canvas: CanvasEdge };
 const GRID_SIZE = 40;
 
+// The parent emits from its own branch port (branchB = branchSide 'right'), but the child
+// sits on that same side of the parent, so it must *receive* on the opposite port (branchA)
+// to face back toward it -- and vice versa. This crossing holds in both orientations because
+// branchA/branchB are always geometric opposites (Left/Right, or Top/Bottom).
 function handlesForEdge(edge: FlowEdge): { sourceHandle: string; targetHandle: string } {
-  if (edge.branchSide === 'right') return { sourceHandle: 'right-source', targetHandle: 'left-target' };
-  if (edge.branchSide === 'left') return { sourceHandle: 'left-source', targetHandle: 'right-target' };
-  return { sourceHandle: 'bottom-source', targetHandle: 'top-target' };
+  if (edge.branchSide === 'right') return { sourceHandle: 'branchB-source', targetHandle: 'branchA-target' };
+  if (edge.branchSide === 'left') return { sourceHandle: 'branchA-source', targetHandle: 'branchB-target' };
+  return { sourceHandle: 'main-source', targetHandle: 'main-target' };
 }
 
 interface FlowchartCanvasProps {
@@ -39,6 +44,9 @@ interface FlowchartCanvasProps {
 }
 
 export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
+  const orientation = useProjectStore(
+    (s) => s.projects.find((p) => p.id === projectId)?.orientation ?? 'vertical',
+  );
   const allNodes = useProjectStore((s) => s.nodes);
   const allEdges = useProjectStore((s) => s.edges);
   const memos = useProjectStore((s) => s.memos);
@@ -73,15 +81,12 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
   // so new elements get sensibly placed. Manual drags done afterwards are left alone
   // until the next structural change.
   function relayout(nextNodes: FlowNode[], nextEdges: FlowEdge[]) {
-    updateNodePositions(layout(nextNodes, nextEdges));
+    updateNodePositions(layout(nextNodes, nextEdges, orientation));
   }
 
-  function handleBranch(nodeId: string, direction: 'bottom' | 'left' | 'right' = 'bottom') {
-    const { newNode, newEdge } = addBranchChild(
-      projectId,
-      nodeId,
-      direction === 'left' || direction === 'right' ? direction : undefined,
-    );
+  function handleBranch(nodeId: string, port: 'next' | 'branchA' | 'branchB' = 'next') {
+    const branchSide = port === 'branchA' ? 'left' : port === 'branchB' ? 'right' : undefined;
+    const { newNode, newEdge } = addBranchChild(projectId, nodeId, branchSide);
     addNodes([newNode]);
     addEdges([newEdge]);
     relayout([...nodes, newNode], [...edges, newEdge]);
@@ -94,11 +99,11 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
     relayout([...nodes, newNode], [...edges, newEdge]);
   }
 
-  function handleAddDirection(nodeId: string, direction: 'top' | 'bottom' | 'left' | 'right') {
-    if (direction === 'top') {
+  function handleAddDirection(nodeId: string, port: Port) {
+    if (port === 'prev') {
       handleAddParent(nodeId);
     } else {
-      handleBranch(nodeId, direction);
+      handleBranch(nodeId, port);
     }
   }
 
@@ -232,8 +237,10 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
   }, [projectId]);
 
   const rfNodes: Node[] = nodes.map((n) => {
-    const hasLeftTarget = edges.some((e) => e.target === n.id && e.branchSide === 'right');
-    const hasRightTarget = edges.some((e) => e.target === n.id && e.branchSide === 'left');
+    // Crossed on purpose: a node receiving a branchSide='right' edge sits on the branchB side
+    // of its parent, so it must face back on the branchA port (see handlesForEdge above).
+    const hasBranchATarget = edges.some((e) => e.target === n.id && e.branchSide === 'right');
+    const hasBranchBTarget = edges.some((e) => e.target === n.id && e.branchSide === 'left');
 
     return {
       id: n.id,
@@ -245,16 +252,17 @@ export function FlowchartCanvas({ projectId }: FlowchartCanvasProps) {
         kind: n.kind,
         completed: n.completed,
         memoState: memoStateFor(n.id),
+        orientation,
         onAddDirection: handleAddDirection,
         onToggleCompleted: toggleNodeCompleted,
-        canAddTop: n.kind !== 'start',
-        canAddBottom: n.kind !== 'end',
-        canAddLeft: n.kind !== 'end' && !hasLeftTarget,
-        canAddRight: n.kind !== 'end' && !hasRightTarget,
-        hasLeftSource: edges.some((e) => e.source === n.id && e.branchSide === 'left'),
-        hasRightSource: edges.some((e) => e.source === n.id && e.branchSide === 'right'),
-        hasLeftTarget,
-        hasRightTarget,
+        canAddPrev: n.kind !== 'start',
+        canAddNext: n.kind !== 'end',
+        canAddBranchA: n.kind !== 'end' && !hasBranchATarget,
+        canAddBranchB: n.kind !== 'end' && !hasBranchBTarget,
+        hasBranchASource: edges.some((e) => e.source === n.id && e.branchSide === 'left'),
+        hasBranchBSource: edges.some((e) => e.source === n.id && e.branchSide === 'right'),
+        hasBranchATarget,
+        hasBranchBTarget,
       } satisfies CustomNodeData,
       deletable: n.kind === 'task',
     };

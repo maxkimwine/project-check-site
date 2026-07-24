@@ -1,5 +1,5 @@
 import dagre from '@dagrejs/dagre';
-import type { FlowEdge, FlowNode } from '../types/project';
+import type { FlowEdge, FlowNode, Orientation } from '../types/project';
 import { createId } from './id';
 
 export const NODE_WIDTH = 200;
@@ -9,9 +9,11 @@ const SIDE_GAP = 60;
 export function layout(
   nodes: FlowNode[],
   edges: FlowEdge[],
+  orientation: Orientation = 'vertical',
 ): Record<string, { x: number; y: number }> {
+  const isHorizontal = orientation === 'horizontal';
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 80 });
+  g.setGraph({ rankdir: isHorizontal ? 'LR' : 'TB', nodesep: 60, ranksep: 80 });
   g.setDefaultEdgeLabel(() => ({}));
 
   // Left/right branches are placed beside their parent (below), not by rank, so
@@ -67,10 +69,18 @@ export function layout(
       const parentPos = positions[edge.source];
       const targetPos = positions[edge.target];
       if (!parentPos || !targetPos) return;
-      const anchored = {
-        x: parentPos.x + (edge.branchSide === 'right' ? NODE_WIDTH + SIDE_GAP : -(NODE_WIDTH + SIDE_GAP)),
-        y: parentPos.y + index * (NODE_HEIGHT + SIDE_GAP),
-      };
+      // Branches sit to the side of the *perpendicular* axis of the main flow: left/right of a
+      // vertical (top-to-bottom) flow, above/below of a horizontal (left-to-right) one. Multiple
+      // branches off the same side stack along whichever axis the main flow runs on.
+      const anchored = isHorizontal
+        ? {
+            x: parentPos.x + index * (NODE_WIDTH + SIDE_GAP),
+            y: parentPos.y + (edge.branchSide === 'right' ? NODE_HEIGHT + SIDE_GAP : -(NODE_HEIGHT + SIDE_GAP)),
+          }
+        : {
+            x: parentPos.x + (edge.branchSide === 'right' ? NODE_WIDTH + SIDE_GAP : -(NODE_WIDTH + SIDE_GAP)),
+            y: parentPos.y + index * (NODE_HEIGHT + SIDE_GAP),
+          };
       const dx = anchored.x - targetPos.x;
       const dy = anchored.y - targetPos.y;
       const subtree = new Set<string>();
