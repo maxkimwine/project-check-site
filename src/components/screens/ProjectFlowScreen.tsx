@@ -83,7 +83,7 @@ export function ProjectFlowScreen() {
         <Button
           variant="secondary"
           onClick={handleToggleOrientation}
-          title="방향을 바꾸면 손으로 옮긴 칸 위치가 초기화되고 자동으로 다시 배치됩니다"
+          title="방향을 바꾸면 손으로 옮긴 칸 위치가 초기화되고 자동으로 다시 배치됩니다 (Ctrl+Z로 되돌릴 수 있어요)"
         >
           {project.orientation === 'horizontal' ? <Columns3 size={14} /> : <Rows3 size={14} />}
           {project.orientation === 'horizontal' ? '가로' : '세로'}
